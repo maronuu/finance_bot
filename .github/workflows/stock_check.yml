@@ -3,10 +3,12 @@ name: Stock Price Check
 on:
   schedule:
     # JST 9:00, 11:30, 12:30, 15:30 (UTC 0:00, 2:30, 3:30, 6:30)
-    - cron: '0 0 * * 1-5'      # 9:00 JST (Monday-Friday)
-    - cron: '30 2 * * 1-5'      # 11:30 JST (Monday-Friday)
-    - cron: '30 3 * * 1-5'       # 12:30 JST (Monday-Friday)
-    - cron: '30 6 * * 1-5'       # 15:30 JST (Monday-Friday)
+    # - cron: '0 0 * * 1-5'      # 9:00 JST (Monday-Friday)
+    # - cron: '30 2 * * 1-5'      # 11:30 JST (Monday-Friday)
+    # - cron: '30 3 * * 1-5'       # 12:30 JST (Monday-Friday)
+    # - cron: '30 6 * * 1-5'       # 15:30 JST (Monday-Friday)
+    # for debug
+    - cron: '*/5 * * * *'
   workflow_dispatch:  # Manual trigger
 
 jobs:
