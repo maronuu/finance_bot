@@ -1,6 +1,9 @@
 name: Stock Price Check
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # JST 9:00, 11:30, 12:30, 15:30 (UTC 0:00, 2:30, 3:30, 6:30)
     # - cron: '0 0 * * 1-5'      # 9:00 JST (Monday-Friday)
