@@ -36,9 +36,18 @@ def load_portfolio_targets(csv_path):
                 # 空行などをスキップするためのガード
                 if not row['ticker']:
                     continue
+                # initial_priceが空の場合はNone、そうでなければfloatに変換
+                initial_price = None
+                if row.get('initial_price') and row['initial_price'].strip():
+                    try:
+                        initial_price = float(row['initial_price'].strip())
+                    except ValueError:
+                        initial_price = None
+                
                 targets.append({
                     'ticker': row['ticker'].strip(),
                     'company_name': row['company_name'],
+                    'initial_price': initial_price,
                     'is_portfolio': True
                 })
         return targets
@@ -135,13 +144,24 @@ def check_stock(target):
         
         # ポートフォリオ銘柄の場合は常に表示
         if is_portfolio:
+            initial_price = target.get('initial_price', None)
+            # 取得時点価格からの変動率を計算（initial_priceが設定されている場合）
+            initial_change_pct = None
+            if initial_price is not None and initial_price > 0:
+                initial_change_pct = ((current_price - initial_price) / initial_price) * 100
+            
             print(f"[{ticker}] 現在: {current_price}円 / 前日比: {change_pct:+.2f}% (ポートフォリオ)")
+            if initial_price is not None:
+                print(f"[{ticker}] 取得価格: {initial_price}円 / 取得時点比: {initial_change_pct:+.2f}%")
+            
             notification_data = {
                 'ticker': ticker,
                 'company_name': company_name,
                 'change_pct': change_pct,
                 'prev_close': prev_close,
                 'current_price': current_price,
+                'initial_price': initial_price,
+                'initial_change_pct': initial_change_pct,
                 'is_portfolio': True
             }
             print(f"[{ticker}] -> 通知対象（ポートフォリオ）")
@@ -213,8 +233,18 @@ def format_notification_message(portfolio_notifications, other_notifications):
             # 2行目: 価格情報
             line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
             
+            # 3行目: 取得時点価格からの変動率（initial_priceが設定されている場合のみ）
+            line3 = None
+            if notif.get('initial_price') is not None and notif['initial_price'] > 0:
+                initial_change_pct = notif.get('initial_change_pct')
+                if initial_change_pct is not None:
+                    initial_change_str = f"{initial_change_pct:+.2f}%"
+                    line3 = f"取得価格: {notif['initial_price']:.1f}円 / 取得時点比: {initial_change_str}"
+            
             lines.append(line1)
             lines.append(line2)
+            if line3:
+                lines.append(line3)
     
     # その他銘柄セクション
     if other_notifications:
