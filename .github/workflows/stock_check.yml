@@ -1,0 +1,36 @@
+name: Stock Price Check
+
+on:
+  schedule:
+    # JST 9:00, 11:30, 12:30, 15:30 (UTC 0:00, 2:30, 3:30, 6:30)
+    - cron: '0 0 * * 1-5'      # 9:00 JST (Monday-Friday)
+    - cron: '30 2 * * 1-5'      # 11:30 JST (Monday-Friday)
+    - cron: '30 3 * * 1-5'       # 12:30 JST (Monday-Friday)
+    - cron: '30 6 * * 1-5'       # 15:30 JST (Monday-Friday)
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  check-stocks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run stock check
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: uv run python main.py
+
