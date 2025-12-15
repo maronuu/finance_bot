@@ -126,13 +126,13 @@ def check_stock(target):
             info = stock.info
             per_trailing = info.get('trailingPE', None)
             per_forward = info.get('forwardPE', None)
-            # trailingPEを優先、取得できない場合はforwardPEを使用
-            if per_trailing is not None:
-                per = per_trailing
-                per_type = 'trailing'
-            elif per_forward is not None:
+            # forwardPEを優先、取得できない場合はtrailingPEを使用
+            if per_forward is not None:
                 per = per_forward
                 per_type = 'forward'
+            elif per_trailing is not None:
+                per = per_trailing
+                per_type = 'trailing'
             else:
                 per = None
                 per_type = None
