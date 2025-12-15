@@ -121,6 +121,28 @@ def check_stock(target):
         # 前日終値 (info or history)
         prev_close = stock.info.get('previousClose')
         
+        # PER/PBR取得
+        try:
+            info = stock.info
+            per_trailing = info.get('trailingPE', None)
+            per_forward = info.get('forwardPE', None)
+            # trailingPEを優先、取得できない場合はforwardPEを使用
+            if per_trailing is not None:
+                per = per_trailing
+                per_type = 'trailing'
+            elif per_forward is not None:
+                per = per_forward
+                per_type = 'forward'
+            else:
+                per = None
+                per_type = None
+            pbr = info.get('priceToBook', None)
+        except Exception as e:
+            print(f"[{ticker}] PER/PBR取得エラー (関数: check_stock, ティッカー: {ticker}): {e}")
+            per = None
+            per_type = None
+            pbr = None
+        
         # データ取得 (1日分)
         data = stock.history(period='1d', interval='1m')
         
@@ -150,7 +172,11 @@ def check_stock(target):
             if initial_price is not None and initial_price > 0:
                 initial_change_pct = ((current_price - initial_price) / initial_price) * 100
             
-            print(f"[{ticker}] 現在: {current_price}円 / 前日比: {change_pct:+.2f}% (ポートフォリオ)")
+            # PER/PBR表示用のフォーマット
+            per_str = f"{per:.2f}" if per is not None else "N/A"
+            pbr_str = f"{pbr:.2f}" if pbr is not None else "N/A"
+            
+            print(f"[{ticker}] 現在: {current_price}円 / 前日比: {change_pct:+.2f}% / PER: {per_str} / PBR: {pbr_str} (ポートフォリオ)")
             if initial_price is not None:
                 print(f"[{ticker}] 取得価格: {initial_price}円 / 取得時点比: {initial_change_pct:+.2f}%")
             
@@ -162,13 +188,20 @@ def check_stock(target):
                 'current_price': current_price,
                 'initial_price': initial_price,
                 'initial_change_pct': initial_change_pct,
+                'per': per,
+                'per_type': per_type,
+                'pbr': pbr,
                 'is_portfolio': True
             }
             print(f"[{ticker}] -> 通知対象（ポートフォリオ）")
             return notification_data
         
         # その他銘柄の場合は閾値チェック
-        print(f"[{ticker}] 現在: {current_price}円 / 前日比: {change_pct:+.2f}% (閾値 +{up_thresh}% / -{down_thresh}%)")
+        # PER/PBR表示用のフォーマット
+        per_str = f"{per:.2f}" if per is not None else "N/A"
+        pbr_str = f"{pbr:.2f}" if pbr is not None else "N/A"
+        
+        print(f"[{ticker}] 現在: {current_price}円 / 前日比: {change_pct:+.2f}% / PER: {per_str} / PBR: {pbr_str} (閾値 +{up_thresh}% / -{down_thresh}%)")
         
         notification_data = None
         
@@ -182,6 +215,9 @@ def check_stock(target):
                 'current_price': current_price,
                 'status': '📈 上昇',
                 'threshold': up_thresh,
+                'per': per,
+                'per_type': per_type,
+                'pbr': pbr,
                 'is_portfolio': False
             }
             
@@ -195,6 +231,9 @@ def check_stock(target):
                 'current_price': current_price,
                 'status': '📉 下落',
                 'threshold': down_thresh,
+                'per': per,
+                'per_type': per_type,
+                'pbr': pbr,
                 'is_portfolio': False
             }
 
@@ -227,8 +266,17 @@ def format_notification_message(portfolio_notifications, other_notifications):
             company_ticker_text = f"{notif['company_name']} ({notif['ticker']})"
             linked_text = f"<{tradingview_url}|{company_ticker_text}>"
             
+            # PER/PBR表示用のフォーマット
+            per_type = notif.get('per_type', None)
+            if notif.get('per') is not None:
+                per_type_label = "実績PER" if per_type == 'trailing' else "予想PER" if per_type == 'forward' else "PER"
+                per_str = f"{per_type_label}: {notif.get('per', None):.2f}"
+            else:
+                per_str = "PER: N/A"
+            pbr_str = f"{notif.get('pbr', None):.2f}" if notif.get('pbr') is not None else "N/A"
+            
             # 1行目: 銘柄情報と変動率（閾値情報なし）
-            line1 = f"{emoji} {linked_text} 前日比: {change_str}"
+            line1 = f"{emoji} {linked_text} 前日比: {change_str} / {per_str} / PBR: {pbr_str}"
             
             # 2行目: 価格情報
             line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
@@ -272,11 +320,20 @@ def format_notification_message(portfolio_notifications, other_notifications):
                 company_ticker_text = f"{notif['company_name']} ({notif['ticker']})"
                 linked_text = f"<{tradingview_url}|{company_ticker_text}>"
                 
-                # 1行目: 銘柄情報と変動率（閾値情報あり）
-                line1 = f"{linked_text} 前日比: {change_str} (閾値: {notif['threshold']:.1f}%)"
+                # PER/PBR表示用のフォーマット
+                per_type = notif.get('per_type', None)
+                if notif.get('per') is not None:
+                    per_type_label = "実績PER" if per_type == 'trailing' else "予想PER" if per_type == 'forward' else "PER"
+                    per_str = f"{per_type_label}: {notif.get('per', None):.2f}"
+                else:
+                    per_str = "PER: N/A"
+                pbr_str = f"{notif.get('pbr', None):.2f}" if notif.get('pbr') is not None else "N/A"
                 
-                # 2行目: 価格情報
-                line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
+                # 1行目: 銘柄情報とPER/PBR
+                line1 = f"{linked_text} {per_str} / PBR: {pbr_str}"
+                
+                # 2行目: 前日比と価格情報
+                line2 = f"前日比: {change_str} (閾値: {notif['threshold']:.1f}%) / 前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
                 
                 lines.append(line1)
                 lines.append(line2)
@@ -292,11 +349,20 @@ def format_notification_message(portfolio_notifications, other_notifications):
                 company_ticker_text = f"{notif['company_name']} ({notif['ticker']})"
                 linked_text = f"<{tradingview_url}|{company_ticker_text}>"
                 
-                # 1行目: 銘柄情報と変動率（閾値情報あり）
-                line1 = f"{linked_text} 前日比: {change_str} (閾値: {notif['threshold']:.1f}%)"
+                # PER/PBR表示用のフォーマット
+                per_type = notif.get('per_type', None)
+                if notif.get('per') is not None:
+                    per_type_label = "実績PER" if per_type == 'trailing' else "予想PER" if per_type == 'forward' else "PER"
+                    per_str = f"{per_type_label}: {notif.get('per', None):.2f}"
+                else:
+                    per_str = "PER: N/A"
+                pbr_str = f"{notif.get('pbr', None):.2f}" if notif.get('pbr') is not None else "N/A"
                 
-                # 2行目: 価格情報
-                line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
+                # 1行目: 銘柄情報とPER/PBR
+                line1 = f"{linked_text} {per_str} / PBR: {pbr_str}"
+                
+                # 2行目: 前日比と価格情報
+                line2 = f"前日比: {change_str} (閾値: {notif['threshold']:.1f}%) / 前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
                 
                 lines.append(line1)
                 lines.append(line2)
