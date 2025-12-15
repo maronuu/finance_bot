@@ -251,24 +251,55 @@ def format_notification_message(portfolio_notifications, other_notifications):
         if portfolio_notifications:
             lines.append("===")
         lines.append("その他銘柄")
-        for notif in other_notifications:
-            # 絵文字記法を決定（上昇/下落に応じて）
-            emoji = ":chart_with_upwards_trend:" if notif['change_pct'] > 0 else ":chart_with_downwards_trend:"
-            change_str = f"{notif['change_pct']:+.2f}%"
-            
-            # TradingView URLを生成してリンク形式に変換
-            tradingview_url = generate_tradingview_url(notif['ticker'])
-            company_ticker_text = f"{notif['company_name']} ({notif['ticker']})"
-            linked_text = f"<{tradingview_url}|{company_ticker_text}>"
-            
-            # 1行目: 銘柄情報と変動率（閾値情報あり）
-            line1 = f"{emoji} {linked_text} 前日比: {change_str} (閾値: {notif['threshold']:.1f}%)"
-            
-            # 2行目: 価格情報
-            line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
-            
-            lines.append(line1)
-            lines.append(line2)
+        
+        # 上昇銘柄と下落銘柄に分ける
+        rising_stocks = [n for n in other_notifications if n['change_pct'] > 0]
+        falling_stocks = [n for n in other_notifications if n['change_pct'] < 0]
+        
+        # 上昇銘柄を上昇率の大きい順（降順）にソート
+        rising_stocks.sort(key=lambda x: x['change_pct'], reverse=True)
+        # 下落銘柄を下落率の小さい順（絶対値が大きい順）にソート
+        falling_stocks.sort(key=lambda x: x['change_pct'])
+        
+        # 上昇銘柄セクション
+        if rising_stocks:
+            lines.append(":chart_with_upwards_trend: 上昇 (変動大きい順)")
+            for notif in rising_stocks:
+                change_str = f"{notif['change_pct']:+.2f}%"
+                
+                # TradingView URLを生成してリンク形式に変換
+                tradingview_url = generate_tradingview_url(notif['ticker'])
+                company_ticker_text = f"{notif['company_name']} ({notif['ticker']})"
+                linked_text = f"<{tradingview_url}|{company_ticker_text}>"
+                
+                # 1行目: 銘柄情報と変動率（閾値情報あり）
+                line1 = f"{linked_text} 前日比: {change_str} (閾値: {notif['threshold']:.1f}%)"
+                
+                # 2行目: 価格情報
+                line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
+                
+                lines.append(line1)
+                lines.append(line2)
+        
+        # 下落銘柄セクション
+        if falling_stocks:
+            lines.append(":chart_with_downwards_trend: 下落 (変動大きい順)")
+            for notif in falling_stocks:
+                change_str = f"{notif['change_pct']:+.2f}%"
+                
+                # TradingView URLを生成してリンク形式に変換
+                tradingview_url = generate_tradingview_url(notif['ticker'])
+                company_ticker_text = f"{notif['company_name']} ({notif['ticker']})"
+                linked_text = f"<{tradingview_url}|{company_ticker_text}>"
+                
+                # 1行目: 銘柄情報と変動率（閾値情報あり）
+                line1 = f"{linked_text} 前日比: {change_str} (閾値: {notif['threshold']:.1f}%)"
+                
+                # 2行目: 価格情報
+                line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
+                
+                lines.append(line1)
+                lines.append(line2)
     
     message = "\n".join(lines)
     return message
