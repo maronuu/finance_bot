@@ -275,11 +275,11 @@ def format_notification_message(portfolio_notifications, other_notifications):
                 per_str = "PER: N/A"
             pbr_str = f"{notif.get('pbr', None):.2f}" if notif.get('pbr') is not None else "N/A"
             
-            # 1行目: 銘柄情報と変動率（閾値情報なし）
-            line1 = f"{emoji} {linked_text} 前日比: {change_str} / {per_str} / PBR: {pbr_str}"
+            # 1行目: 銘柄情報とPER/PBR
+            line1 = f"{emoji} {linked_text} {per_str} / PBR: {pbr_str}"
             
-            # 2行目: 価格情報
-            line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
+            # 2行目: 価格情報と前日比
+            line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円 / 前日比: {change_str}"
             
             # 3行目: 取得時点価格からの変動率（initial_priceが設定されている場合のみ）
             line3 = None
@@ -332,8 +332,8 @@ def format_notification_message(portfolio_notifications, other_notifications):
                 # 1行目: 銘柄情報とPER/PBR
                 line1 = f"{linked_text} {per_str} / PBR: {pbr_str}"
                 
-                # 2行目: 前日比と価格情報
-                line2 = f"前日比: {change_str} (閾値: {notif['threshold']:.1f}%) / 前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
+                # 2行目: 価格情報と前日比
+                line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円 / 前日比: {change_str} (閾値: {notif['threshold']:.1f}%)"
                 
                 lines.append(line1)
                 lines.append(line2)
@@ -361,8 +361,8 @@ def format_notification_message(portfolio_notifications, other_notifications):
                 # 1行目: 銘柄情報とPER/PBR
                 line1 = f"{linked_text} {per_str} / PBR: {pbr_str}"
                 
-                # 2行目: 前日比と価格情報
-                line2 = f"前日比: {change_str} (閾値: {notif['threshold']:.1f}%) / 前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円"
+                # 2行目: 価格情報と前日比
+                line2 = f"前日終値: {notif['prev_close']:.1f}円 -> 現在値: {notif['current_price']:.1f}円 / 前日比: {change_str} (閾値: {notif['threshold']:.1f}%)"
                 
                 lines.append(line1)
                 lines.append(line2)
